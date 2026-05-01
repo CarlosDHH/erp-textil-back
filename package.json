@@ -1,6 +1,6 @@
 {
   "name": "renta-internet-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API backend para sistema de rentas de internet",
   "type": "module",
   "main": "src/app.js",

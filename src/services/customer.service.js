@@ -109,6 +109,45 @@ export const update = async (id, data) => {
   }
 }
 
+export const bulkCreate = async (records) => {
+  const created = []
+  const failed = []
+
+  for (let i = 0; i < records.length; i++) {
+    const raw = records[i]
+    try {
+      if (raw.email) {
+        const exists = await prisma.customer.findFirst({
+          where: { email: raw.email, ...baseWhere },
+        })
+        if (exists) {
+          failed.push({ index: i, email: raw.email ?? null, reason: 'Email duplicado' })
+          continue
+        }
+      }
+
+      const customer = await prisma.customer.create({
+        data: {
+          name:         raw.name,
+          lastName:     raw.lastName     || 'N/A',
+          email:        raw.email        || null,
+          phone:        raw.phone        || 'N/A',
+          municipality: raw.municipality || 'N/A',
+          city:         raw.city         || 'N/A',
+        },
+      })
+      created.push(customer.id)
+    } catch (error) {
+      failed.push({ index: i, email: raw.email ?? null, reason: error.message })
+    }
+  }
+
+  return generateResponse(201, true, `Carga completada: ${created.length} creados, ${failed.length} fallidos`, {
+    created: created.length,
+    failed,
+  })
+}
+
 export const remove = async (id) => {
   try {
     const customer = await prisma.customer.findFirst({ where: { id, ...baseWhere } })
