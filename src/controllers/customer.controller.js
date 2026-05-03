@@ -37,10 +37,11 @@ export const remove = async (req, res, next) => {
 
 export const bulkCreate = async (req, res, next) => {
   try {
-    if (!Array.isArray(req.body) || req.body.length === 0) {
-      return res.status(400).json({ statusCode: 400, success: false, message: 'El body debe ser un array no vacío' })
+    const { planId, customers } = req.body
+    if (!Array.isArray(customers) || customers.length === 0) {
+      return res.status(400).json({ statusCode: 400, success: false, message: 'El campo "customers" debe ser un array no vacío' })
     }
-    const result = await svc.bulkCreate(req.body)
+    const result = await svc.bulkCreate(customers, planId)
     return res.status(result.statusCode).json(result)
   } catch (error) { next(error) }
 }
