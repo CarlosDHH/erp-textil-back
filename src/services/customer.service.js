@@ -109,9 +109,14 @@ export const update = async (id, data) => {
   }
 }
 
-export const bulkCreate = async (records) => {
+export const bulkCreate = async (records, planId) => {
   const created = []
   const failed = []
+
+  if (planId) {
+    const plan = await prisma.plan.findFirst({ where: { id: planId, active: true, deleted: false } })
+    if (!plan) return generateResponse(404, false, 'Plan no encontrado o inactivo')
+  }
 
   for (let i = 0; i < records.length; i++) {
     const raw = records[i]
@@ -126,17 +131,26 @@ export const bulkCreate = async (records) => {
         }
       }
 
-      const customer = await prisma.customer.create({
-        data: {
-          name:         raw.name,
-          lastName:     raw.lastName     || 'N/A',
-          email:        raw.email        || null,
-          phone:        raw.phone        || 'N/A',
-          municipality: raw.municipality || 'N/A',
-          city:         raw.city         || 'N/A',
-        },
+      await prisma.$transaction(async (tx) => {
+        const customer = await tx.customer.create({
+          data: {
+            name:         raw.name,
+            lastName:     raw.lastName     || 'N/A',
+            email:        raw.email        || null,
+            phone:        raw.phone        || 'N/A',
+            municipality: raw.municipality || 'N/A',
+            city:         raw.city         || 'N/A',
+          },
+        })
+
+        if (planId) {
+          await tx.contract.create({
+            data: { customerId: customer.id, planId, startDate: new Date() },
+          })
+        }
+
+        created.push(customer.id)
       })
-      created.push(customer.id)
     } catch (error) {
       failed.push({ index: i, email: raw.email ?? null, reason: error.message })
     }
