@@ -1,7 +1,7 @@
 {
-  "name": "base-backend",
+  "name": "erp-textil-back",
   "version": "1.0.0",
-  "description": "API backend base — Express.js + PostgreSQL + Prisma",
+  "description": "API backend para ERP de taller textil — Express.js + PostgreSQL + Prisma",
   "type": "module",
   "main": "src/app.js",
   "scripts": {

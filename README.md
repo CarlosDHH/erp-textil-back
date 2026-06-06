@@ -1,6 +1,6 @@
-# Base Backend
+# ERP Textil — Backend
 
-API REST base construida con **Express.js**, **PostgreSQL** y **Prisma ORM**. Diseñada como punto de partida para proyectos nuevos: autenticación JWT, control de acceso por roles, y estructura de permisos por módulo lista para extender.
+API REST para sistema ERP de taller textil, construida con **Express.js**, **PostgreSQL** y **Prisma ORM**. Incluye autenticación JWT, control de acceso por roles y estructura de permisos por módulo.
 
 ---
 
