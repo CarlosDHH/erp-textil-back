@@ -7,236 +7,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
-enum Role {
-  ADMIN
-  OPERATOR
-}
-
-enum ContractStatus {
-  ACTIVE
-  SUSPENDED
-  CANCELLED
-}
-
-enum PaymentMethod {
-  CASH
-  TRANSFER
-  CARD
-}
-
-enum ReceiptSendStatus {
-  PENDING
-  SENT
-  FAILED
-}
-
 // ─── Models ───────────────────────────────────────────────────────────────────
 
-model User {
-  id           String    @id @default(uuid())
-  name         String
-  lastName     String    @map("last_name")
-  email        String
-  phone        String?
-  passwordHash String    @map("password_hash")
-  role         Role      @default(OPERATOR)
-  active       Boolean   @default(true)
-  deleted      Boolean   @default(false)
-  loginAttempts  Int       @default(0)   @map("login_attempts")
-  blockedUntil   DateTime?               @map("blocked_until")   @db.Timestamptz(3)
-  createdAt    DateTime  @default(now()) @map("created_at")       @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt      @map("updated_at")        @db.Timestamptz(3)
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  payments     Payment[]
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  lastName      String    @map("last_name")
+  email         String    @unique
+  phone         String?
+  passwordHash  String    @map("password_hash")
+  roleId        String    @map("role_id")
+  active        Boolean   @default(true)
+  deleted       Boolean   @default(false)
+  loginAttempts Int       @default(0) @map("login_attempts")
+  blockedUntil  DateTime? @map("blocked_until") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  role                Role                     @relation(fields: [roleId], references: [id])
+  permissionOverrides UserPermissionOverride[]  @relation("UserOverrides")
+  grantedOverrides    UserPermissionOverride[]  @relation("GrantedByUser")
 
   @@map("users")
 }
 
-model Customer {
-  id           String     @id @default(uuid())
-  name         String
-  lastName     String     @map("last_name")
-  email        String?    @unique
-  phone        String
-  municipality String
-  city         String
-  lastPaidPeriod  DateTime?  @map("last_paid_period")  @db.Timestamptz(3)
-  active       Boolean    @default(true)
-  deleted      Boolean    @default(false)
-  createdAt    DateTime   @default(now()) @map("created_at")  @db.Timestamptz(3)
-  updatedAt    DateTime   @updatedAt      @map("updated_at")   @db.Timestamptz(3)
-
-  contracts    Contract[]
-
-  @@map("customers")
-}
-
-model Plan {
-  id          String     @id @default(uuid())
+model Module {
+  id          String   @id @default(uuid())
+  slug        String   @unique
   name        String
-  mbps        Int
-  price       Decimal    @db.Decimal(10, 2)
   description String?
-  active      Boolean    @default(true)
-  deleted     Boolean    @default(false)
-  createdAt   DateTime   @default(now()) @map("created_at")  @db.Timestamptz(3)
-  updatedAt   DateTime   @updatedAt      @map("updated_at")   @db.Timestamptz(3)
-
-  contracts   Contract[]
-
-  @@map("plans")
-}
-
-// fecha_fin es null mientras el cliente siga activo
-model Contract {
-  id          String         @id @default(uuid())
-  customerId  String         @map("customer_id")
-  planId      String         @map("plan_id")
-  startDate   DateTime       @map("start_date")               @db.Timestamptz(3)
-  endDate     DateTime?      @map("end_date")                 @db.Timestamptz(3)
-  status      ContractStatus @default(ACTIVE)
-  deleted     Boolean        @default(false)
-  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime       @updatedAt      @map("updated_at")  @db.Timestamptz(3)
-
-  customer    Customer       @relation(fields: [customerId], references: [id])
-  plan        Plan           @relation(fields: [planId], references: [id])
-  payments    Payment[]
-
-  @@map("contracts")
-}
-
-enum PaymentType {
-  FULL
-  PARTIAL_ADVANCE
-  PARTIAL_LATE
-}
-
-model Payment {
-  id            String        @id @default(uuid())
-  contractId    String        @map("contract_id")
-  userId        String        @map("user_id")
-  amount        Decimal       @db.Decimal(10, 2)
-  paymentType   PaymentType   @default(FULL) @map("payment_type")
-  balance       Decimal?      @db.Decimal(10, 2)
-  paidAt        DateTime      @default(now()) @map("paid_at")     @db.Timestamptz(3)
-  periodFrom    DateTime      @map("period_from")                  @db.Timestamptz(3)
-  periodTo      DateTime      @map("period_to")                    @db.Timestamptz(3)
-  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
-  notes         String?
-  deleted       Boolean       @default(false)
-  createdAt     DateTime      @default(now()) @map("created_at")   @db.Timestamptz(3)
-  updatedAt     DateTime      @updatedAt      @map("updated_at")    @db.Timestamptz(3)
-
-  contract      Contract      @relation(fields: [contractId], references: [id])
-  user          User          @relation(fields: [userId], references: [id])
-  receipt       Receipt?
-
-  @@map("payments")
-}
-
-model Receipt {
-  id              String            @id @default(uuid())
-  paymentId       String            @unique @map("payment_id")
-  folio           String            @unique
-  pdfPath         String?           @map("pdf_path")
-  sendStatus      ReceiptSendStatus @default(PENDING) @map("send_status")
-  recipientPhone  String?           @map("recipient_phone")
-  sentAt          DateTime?         @map("sent_at")                  @db.Timestamptz(3)
-  deleted         Boolean           @default(false)
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime          @updatedAt      @map("updated_at")  @db.Timestamptz(3)
-
-  payment         Payment           @relation(fields: [paymentId], references: [id])
-
-  @@map("receipts")
-}
-
-// ─── Landing CMS ──────────────────────────────────────────────────────────────
-
-enum ContactStatus {
-  NEW
-  READ
-  REPLIED
-}
-
-model LandingConfig {
-  id           String   @id @default(uuid())
-  companyName  String   @map("company_name")
-  tagline      String
-  primaryColor String   @map("primary_color") @db.VarChar(7)
-  accentColor  String   @map("accent_color")  @db.VarChar(7)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  @@map("landing_config")
-}
-
-model LandingHero {
-  id             String   @id @default(uuid())
-  badge          String
-  headline       String
-  headlineAccent String   @map("headline_accent")
-  subheadline    String
-  ctaPrimary     String   @map("cta_primary")
-  ctaSecondary   String   @map("cta_secondary")
-  statValue      String   @map("stat_value")
-  statLabel      String   @map("stat_label")
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  @@map("landing_hero")
-}
-
-model LandingService {
-  id          String   @id @default(uuid())
-  icon        String
-  title       String
-  description String
-  features    Json
-  highlighted Boolean  @default(false)
+  icon        String?
+  path        String?
+  parentId    String?  @map("parent_id")
   sortOrder   Int      @default(0) @map("sort_order")
-  active      Boolean  @default(true)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  isActive    Boolean  @default(true) @map("is_active")
 
-  @@map("landing_services")
+  parent      Module?  @relation("ModuleHierarchy", fields: [parentId], references: [id])
+  children    Module[] @relation("ModuleHierarchy")
+  permissions RolePermission[]
+  overrides   UserPermissionOverride[]
+
+  @@map("modules")
 }
 
-model LandingProduct {
-  id          String   @id @default(uuid())
-  name        String
-  description String
-  price       Decimal  @db.Decimal(10, 2)
-  imageAlt    String   @map("image_alt")
-  badge       String?
-  sortOrder   Int      @default(0) @map("sort_order")
-  active      Boolean  @default(true)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+model RolePermission {
+  id         String   @id @default(uuid())
+  roleId     String   @map("role_id")
+  moduleId   String   @map("module_id")
+  canView    Boolean  @default(false) @map("can_view")
+  canCreate  Boolean  @default(false) @map("can_create")
+  canEdit    Boolean  @default(false) @map("can_edit")
+  canDelete  Boolean  @default(false) @map("can_delete")
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(3)
 
-  @@map("landing_products")
+  role   Role   @relation(fields: [roleId], references: [id])
+  module Module @relation(fields: [moduleId], references: [id])
+
+  @@unique([roleId, moduleId])
+  @@map("role_permissions")
 }
 
-model LandingNews {
-  id        String   @id @default(uuid())
-  category  String
-  date      String
-  title     String
-  excerpt   String
-  active    Boolean  @default(true)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+model UserPermissionOverride {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  moduleId     String    @map("module_id")
+  canView      Boolean   @default(false) @map("can_view")
+  canCreate    Boolean   @default(false) @map("can_create")
+  canEdit      Boolean   @default(false) @map("can_edit")
+  canDelete    Boolean   @default(false) @map("can_delete")
+  overrideType String    @map("override_type")
+  reason       String?
+  grantedBy    String    @map("granted_by")
+  grantedAt    DateTime  @default(now()) @map("granted_at") @db.Timestamptz(3)
+  expiresAt    DateTime? @map("expires_at") @db.Timestamptz(3)
 
-  @@map("landing_news")
-}
+  user    User   @relation("UserOverrides", fields: [userId], references: [id])
+  module  Module @relation(fields: [moduleId], references: [id])
+  grantor User   @relation("GrantedByUser", fields: [grantedBy], references: [id])
 
-model LandingContact {
-  id          String        @id @default(uuid())
-  name        String
-  email       String
-  phone       String?
-  serviceType String        @map("service_type")
-  message     String
-  status      ContactStatus @default(NEW)
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-
-  @@map("landing_contacts")
+  @@map("user_permission_overrides")
 }

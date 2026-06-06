@@ -12,7 +12,7 @@ const safeUser = (user) => ({
   lastName: user.lastName,
   email: user.email,
   phone: user.phone,
-  role: user.role,
+  role: user.role?.name ?? null,
   active: user.active,
   createdAt: user.createdAt,
 })
@@ -33,6 +33,7 @@ export const getAll = async ({ page, limit, search } = {}) => {
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
+        include: { role: { select: { name: true } } },
         ...paginate(page, limit),
         orderBy: { createdAt: 'desc' },
       }),
@@ -47,7 +48,10 @@ export const getAll = async ({ page, limit, search } = {}) => {
 
 export const getById = async (id) => {
   try {
-    const user = await prisma.user.findFirst({ where: { id, ...baseWhere } })
+    const user = await prisma.user.findFirst({
+      where: { id, ...baseWhere },
+      include: { role: { select: { name: true } } },
+    })
 
     if (!user) return generateResponse(404, false, 'Usuario no encontrado')
 
@@ -70,9 +74,10 @@ export const create = async (data) => {
         lastName: data.lastName,
         email: data.email,
         phone: data.phone ?? null,
-        role: data.role ?? 'OPERATOR',
+        roleId: data.roleId,
         passwordHash,
       },
+      include: { role: { select: { name: true } } },
     })
 
     return generateResponse(201, true, 'Usuario creado', safeUser(user))
@@ -92,9 +97,10 @@ export const update = async (id, data) => {
         ...(data.name && { name: data.name }),
         ...(data.lastName && { lastName: data.lastName }),
         ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.role && { role: data.role }),
+        ...(data.roleId && { roleId: data.roleId }),
         ...(data.active !== undefined && { active: data.active }),
       },
+      include: { role: { select: { name: true } } },
     })
 
     return generateResponse(200, true, 'Usuario actualizado', safeUser(updated))

@@ -1,12 +1,12 @@
 services:
   postgres:
     image: postgres:16
-    container_name: renta_internet_db
+    container_name: base_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
-      POSTGRES_DB: renta_internet
+      POSTGRES_DB: base_db
       POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5433:5432"

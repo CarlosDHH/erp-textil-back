@@ -1,7 +1,7 @@
 {
-  "name": "renta-internet-backend",
-  "version": "1.0.1",
-  "description": "API backend para sistema de rentas de internet",
+  "name": "base-backend",
+  "version": "1.0.0",
+  "description": "API backend base — Express.js + PostgreSQL + Prisma",
   "type": "module",
   "main": "src/app.js",
   "scripts": {
@@ -24,11 +24,7 @@
     "express": "^4.21.1",
     "express-validator": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
-    "luxon": "^3.7.2",
     "morgan": "^1.10.0",
-    "nodemailer": "^8.0.4",
-    "pdfkit": "^0.18.0",
-    "prisma": "^5.14.0",
-    "uuid": "^10.0.0"
+    "prisma": "^5.14.0"
   }
 }

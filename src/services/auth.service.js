@@ -19,6 +19,7 @@ export const login = async (email, password) => {
   try {
     const user = await prisma.user.findFirst({
       where: { email, deleted: false },
+      include: { role: true },
     })
 
     if (!user || !user.active) {
@@ -35,7 +36,7 @@ export const login = async (email, password) => {
     if (!isValidPassword) {
       const attempts = user.loginAttempts + 1
       const shouldBlock = attempts >= MAX_ATTEMPTS
-      { }
+
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -62,7 +63,7 @@ export const login = async (email, password) => {
     const tokens = generateTokens({
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role.name,
     })
 
     return generateResponse(200, true, 'Login exitoso', {
@@ -71,7 +72,7 @@ export const login = async (email, password) => {
         name: user.name,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
+        role: user.role.name,
       },
       ...tokens,
     })
