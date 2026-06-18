@@ -6,6 +6,7 @@ import morgan from 'morgan'
 import authRoutes from './routes/auth.routes.js'
 import userRoutes from './routes/user.routes.js'
 import roleRoutes from './routes/role.routes.js'
+import supplierRoutes from './routes/supplier.routes.js'
 
 import { notFound } from './middlewares/notFound.js'
 import { errorHandler } from './middlewares/errorHandler.js'
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/roles', roleRoutes)
+app.use('/api/suppliers', supplierRoutes)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }))
 

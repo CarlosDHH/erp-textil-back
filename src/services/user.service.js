@@ -31,7 +31,7 @@ export const getAll = async ({ page, limit, search } = {}) => {
     }
 
     const [users, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.user.findMany({  
         where,
         include: { role: { select: { name: true } } },
         ...paginate(page, limit),
