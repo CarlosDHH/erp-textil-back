@@ -15,7 +15,6 @@ model Role {
   description String?
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-
   users       User[]
   permissions RolePermission[]
 
@@ -99,4 +98,17 @@ model UserPermissionOverride {
   grantor User   @relation("GrantedByUser", fields: [grantedBy], references: [id])
 
   @@map("user_permission_overrides")
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(180)
+  rfc         String?  @db.VarChar(13)
+  phone       String?  @db.VarChar(20)
+  email       String?  @db.VarChar(180)
+  contactName String?  @map("contact_name") @db.VarChar(120)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("suppliers")
 }
