@@ -112,3 +112,18 @@ model Supplier {
 
   @@map("suppliers")
 }
+
+model Supply {
+  id            String   @id @default(uuid())
+  code          String   @unique @db.VarChar(40)
+  name          String   @db.VarChar(180)
+  type          String   @db.VarChar(20)   // fabric | thread | zipper | button | interfacing | ink | stationery | accessory | other
+  unitMeasure   String   @map("unidad_medida") @db.VarChar(30) // meter | piece | cone | kg | roll
+  minStock      Decimal  @default(0) @map("stock_minimo") @db.Decimal(10, 2)
+  currentStock  Decimal  @default(0) @map("stock_actual") @db.Decimal(10, 2)
+  durationDays  Int?     @map("dias_duracion")
+  isActive      Boolean  @default(true) @map("activo")
+  createdAt     DateTime @default(now()) @map("creado_en")
+
+  @@map("insumos")
+}

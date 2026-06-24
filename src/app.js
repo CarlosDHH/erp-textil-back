@@ -9,6 +9,7 @@ import roleRoutes from './routes/role.routes.js'
 import supplierRoutes from './routes/supplier.routes.js'
 import moduleRoutes from './routes/module.routes.js'
 import roleModuleRoutes from './routes/roleModule.routes.js'
+import supplyRoutes from './routes/supply.routes.js'
 
 import { notFound } from './middlewares/notFound.js'
 import { errorHandler } from './middlewares/errorHandler.js'
@@ -32,6 +33,7 @@ app.use('/api/roles', roleRoutes)
 app.use('/api/suppliers', supplierRoutes)
 app.use('/api/modules', moduleRoutes)
 app.use('/api/roleModule', roleModuleRoutes)
+app.use('/api/supply', supplyRoutes)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }))
 
