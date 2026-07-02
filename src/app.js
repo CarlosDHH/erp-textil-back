@@ -10,6 +10,8 @@ import supplierRoutes from './routes/supplier.routes.js'
 import moduleRoutes from './routes/module.routes.js'
 import roleModuleRoutes from './routes/roleModule.routes.js'
 import supplyRoutes from './routes/supply.routes.js'
+import batchRoutes from './routes/batch.routes.js'
+import inventoryMovement from './routes/inventoryMovement.routes.js'
 
 import { notFound } from './middlewares/notFound.js'
 import { errorHandler } from './middlewares/errorHandler.js'
@@ -34,6 +36,8 @@ app.use('/api/suppliers', supplierRoutes)
 app.use('/api/modules', moduleRoutes)
 app.use('/api/roleModule', roleModuleRoutes)
 app.use('/api/supply', supplyRoutes)
+app.use('/api/batch', batchRoutes)
+app.use('/api/inventoryMovement', inventoryMovement)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }))
 
