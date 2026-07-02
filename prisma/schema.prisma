@@ -36,6 +36,8 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  movements InventoryMovement[]
+
   role                Role                     @relation(fields: [roleId], references: [id])
   permissionOverrides UserPermissionOverride[]  @relation("UserOverrides")
   grantedOverrides    UserPermissionOverride[]  @relation("GrantedByUser")
@@ -148,8 +150,26 @@ model Batch {
   notes            String?
   createdAt        DateTime @default(now()) @map("creado_en")
 
+  movements InventoryMovement[]
+
   supply   Supply  @relation(fields: [supplyId], references: [id])
   supplier Supplier @relation(fields: [supplierId], references: [id])
 
   @@map("lotes")
+}
+
+model InventoryMovement {
+  id          String   @id @default(uuid())
+  batchId     String   @map("lote_id")
+  userId      String   @map("usuario_id")
+  referenceId String?  @map("referencia_id")
+  type        String   @db.VarChar(10) // entry | exit | adjustment | loss
+  quantity    Decimal  @db.Decimal(10,2)
+  reason      String?
+  createdAt   DateTime @default(now()) @map("fecha")
+
+  batch Batch @relation(fields: [batchId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@map("movimientos_inventario")
 }
