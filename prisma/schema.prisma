@@ -110,6 +110,8 @@ model Supplier {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
 
+  batches       Batch[]
+
   @@map("suppliers")
 }
 
@@ -125,5 +127,29 @@ model Supply {
   isActive      Boolean  @default(true) @map("activo")
   createdAt     DateTime @default(now()) @map("creado_en")
 
+  batches       Batch[]
+
   @@map("insumos")
+}
+
+model Batch {
+  id               String   @id @default(uuid())
+  supplyId         String   @map("insumo_id")
+  supplierId       String   @map("proveedor_id")
+  purchaseOrderId  String?  @map("orden_compra_id")
+  batchNumber      String   @unique @map("numero_lote")
+  season           String?  @db.VarChar(60)
+  toneRange        String?  @map("rango_tono") @db.VarChar(60)
+  color            String?  @db.VarChar(60)
+  initialQuantity  Decimal  @map("cantidad_inicial") @db.Decimal(10,2)
+  currentQuantity  Decimal  @map("cantidad_actual") @db.Decimal(10,2)
+  warehouseLocation String? @map("ubicacion_almacen") @db.VarChar(80)
+  entryDate        DateTime @map("fecha_entrada")
+  notes            String?
+  createdAt        DateTime @default(now()) @map("creado_en")
+
+  supply   Supply  @relation(fields: [supplyId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@map("lotes")
 }
