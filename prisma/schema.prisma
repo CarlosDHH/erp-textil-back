@@ -10,11 +10,11 @@ datasource db {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   users       User[]
   permissions RolePermission[]
 
@@ -39,25 +39,25 @@ model User {
   movements InventoryMovement[]
 
   role                Role                     @relation(fields: [roleId], references: [id])
-  permissionOverrides UserPermissionOverride[]  @relation("UserOverrides")
-  grantedOverrides    UserPermissionOverride[]  @relation("GrantedByUser")
+  permissionOverrides UserPermissionOverride[] @relation("UserOverrides")
+  grantedOverrides    UserPermissionOverride[] @relation("GrantedByUser")
 
   @@map("users")
 }
 
 model Module {
-  id          String   @id @default(uuid())
-  slug        String   @unique
+  id          String  @id @default(uuid())
+  slug        String  @unique
   name        String
   description String?
   icon        String?
   path        String?
-  parentId    String?  @map("parent_id")
-  sortOrder   Int      @default(0) @map("sort_order")
-  isActive    Boolean  @default(true) @map("is_active")
+  parentId    String? @map("parent_id")
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
 
-  parent      Module?  @relation("ModuleHierarchy", fields: [parentId], references: [id])
-  children    Module[] @relation("ModuleHierarchy")
+  parent      Module?                  @relation("ModuleHierarchy", fields: [parentId], references: [id])
+  children    Module[]                 @relation("ModuleHierarchy")
   permissions RolePermission[]
   overrides   UserPermissionOverride[]
 
@@ -112,47 +112,47 @@ model Supplier {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
 
-  batches       Batch[]
+  batches Batch[]
 
   @@map("suppliers")
 }
 
 model Supply {
-  id            String   @id @default(uuid())
-  code          String   @unique @db.VarChar(40)
-  name          String   @db.VarChar(180)
-  type          String   @db.VarChar(20)   // fabric | thread | zipper | button | interfacing | ink | stationery | accessory | other
-  unitMeasure   String   @map("unidad_medida") @db.VarChar(30) // meter | piece | cone | kg | roll
-  minStock      Decimal  @default(0) @map("stock_minimo") @db.Decimal(10, 2)
-  currentStock  Decimal  @default(0) @map("stock_actual") @db.Decimal(10, 2)
-  durationDays  Int?     @map("dias_duracion")
-  isActive      Boolean  @default(true) @map("activo")
-  createdAt     DateTime @default(now()) @map("creado_en")
+  id           String   @id @default(uuid())
+  code         String   @unique @db.VarChar(40)
+  name         String   @db.VarChar(180)
+  type         String   @db.VarChar(20) // fabric | thread | zipper | button | interfacing | ink | stationery | accessory | other
+  unitMeasure  String   @map("unidad_medida") @db.VarChar(30) // meter | piece | cone | kg | roll
+  minStock     Decimal  @default(0) @map("stock_minimo") @db.Decimal(10, 2)
+  currentStock Decimal  @default(0) @map("stock_actual") @db.Decimal(10, 2)
+  durationDays Int?     @map("dias_duracion")
+  isActive     Boolean  @default(true) @map("activo")
+  createdAt    DateTime @default(now()) @map("creado_en")
 
-  batches       Batch[]
+  batches Batch[]
 
   @@map("insumos")
 }
 
 model Batch {
-  id               String   @id @default(uuid())
-  supplyId         String   @map("insumo_id")
-  supplierId       String   @map("proveedor_id")
-  purchaseOrderId  String?  @map("orden_compra_id")
-  batchNumber      String   @unique @map("numero_lote")
-  season           String?  @db.VarChar(60)
-  toneRange        String?  @map("rango_tono") @db.VarChar(60)
-  color            String?  @db.VarChar(60)
-  initialQuantity  Decimal  @map("cantidad_inicial") @db.Decimal(10,2)
-  currentQuantity  Decimal  @map("cantidad_actual") @db.Decimal(10,2)
-  warehouseLocation String? @map("ubicacion_almacen") @db.VarChar(80)
-  entryDate        DateTime @map("fecha_entrada")
-  notes            String?
-  createdAt        DateTime @default(now()) @map("creado_en")
+  id                String   @id @default(uuid())
+  supplyId          String   @map("insumo_id")
+  supplierId        String   @map("proveedor_id")
+  purchaseOrderId   String?  @map("orden_compra_id")
+  batchNumber       String   @unique @map("numero_lote")
+  season            String?  @db.VarChar(60)
+  toneRange         String?  @map("rango_tono") @db.VarChar(60)
+  color             String?  @db.VarChar(60)
+  initialQuantity   Decimal  @map("cantidad_inicial") @db.Decimal(10, 2)
+  currentQuantity   Decimal  @map("cantidad_actual") @db.Decimal(10, 2)
+  warehouseLocation String?  @map("ubicacion_almacen") @db.VarChar(80)
+  entryDate         DateTime @map("fecha_entrada")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("creado_en")
 
   movements InventoryMovement[]
 
-  supply   Supply  @relation(fields: [supplyId], references: [id])
+  supply   Supply   @relation(fields: [supplyId], references: [id])
   supplier Supplier @relation(fields: [supplierId], references: [id])
 
   @@map("lotes")
@@ -164,7 +164,7 @@ model InventoryMovement {
   userId      String   @map("usuario_id")
   referenceId String?  @map("referencia_id")
   type        String   @db.VarChar(10) // entry | exit | adjustment | loss
-  quantity    Decimal  @db.Decimal(10,2)
+  quantity    Decimal  @db.Decimal(10, 2)
   reason      String?
   createdAt   DateTime @default(now()) @map("fecha")
 
