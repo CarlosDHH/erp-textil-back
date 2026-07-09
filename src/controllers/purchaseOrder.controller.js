@@ -12,11 +12,16 @@ export const getById = async (req, res) => {
 }
 
 export const create = async (req, res) => {
-  const result = await purchaseOrderService.create(req.body, req.user.id)
+  const result = await purchaseOrderService.create(req.body, req.user.sub)
   res.status(result.statusCode).json(result)
 }
 
 export const update = async (req, res) => {
   const result = await purchaseOrderService.update(req.params.id, req.body)
+  res.status(result.statusCode).json(result)
+}
+
+export const receiveOrder = async (req, res) => {
+  const result = await purchaseOrderService.receiveOrder(req.params.id)
   res.status(result.statusCode).json(result)
 }
