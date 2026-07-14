@@ -37,3 +37,19 @@ export const getAll = async (req, res) => {
     })
   }
 }
+
+export const createExit = async (req, res) => {
+  const result = await movementService.createExit(req.body, req.user.sub)
+  res.status(result.statusCode).json(result)
+}
+
+export const createExitFIFO = async (req, res) => {
+  const result = await movementService.createExitFIFO(req.body, req.user.sub)
+  res.status(result.statusCode).json(result)
+}
+
+export const getKardex = async (req, res) => {
+  const { supplyId } = req.params
+  const result = await movementService.getKardex(supplyId)
+  res.status(result.statusCode).json(result)
+}
