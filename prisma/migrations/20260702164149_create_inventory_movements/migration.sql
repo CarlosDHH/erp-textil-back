@@ -1,9 +1,9 @@
 -- CreateTable
 CREATE TABLE "movimientos_inventario" (
-    "id" TEXT NOT NULL,
-    "lote_id" TEXT NOT NULL,
-    "usuario_id" TEXT NOT NULL,
-    "referencia_id" TEXT,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "lote_id" UUID NOT NULL,
+    "usuario_id" UUID NOT NULL,
+    "referencia_id" UUID,
     "type" VARCHAR(10) NOT NULL,
     "quantity" DECIMAL(10,2) NOT NULL,
     "reason" TEXT,

@@ -6,7 +6,7 @@ import { generateResponse } from '../utils/handleResponse.js'
 const MAX_ATTEMPTS = 5
 const BLOCK_MINUTES = 15
 
-const generateTokens = (payload) => ({
+export const generateTokens = (payload) => ({
   accessToken: jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
   }),
@@ -89,4 +89,44 @@ export const refreshToken = (token) => {
   } catch {
     return generateResponse(401, false, 'Refresh token inválido o expirado')
   }
+}
+
+
+
+export async function isAccountLocked(email) {
+  const user = await prisma.user.findUnique({ where: { email } })
+
+  if (!user) return { locked: false }
+
+  if (user.blockedUntil && user.blockedUntil > new Date()) {
+    const minutesLeft = Math.ceil((user.blockedUntil - new Date()) / 1000 / 60)
+    return { locked: true, minutesRemaining: minutesLeft }
+  }
+
+  return { locked: false }
+}
+
+export async function registerFailedAttempt(email) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) return
+
+  const attempts = user.loginAttempts + 1
+  const shouldBlock = attempts >= MAX_ATTEMPTS
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      loginAttempts: attempts,
+      blockedUntil: shouldBlock
+        ? new Date(Date.now() + BLOCK_MINUTES * 60 * 1000)
+        : null,
+    },
+  })
+}
+
+export async function resetFailedAttempts(email) {
+  await prisma.user.update({
+    where: { email },
+    data: { loginAttempts: 0, blockedUntil: null },
+  })
 }

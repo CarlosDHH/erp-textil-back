@@ -1,10 +1,10 @@
 -- CreateTable
 CREATE TABLE "purchase_orders" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "folio" TEXT NOT NULL,
-    "supplier_id" TEXT NOT NULL,
-    "created_by" TEXT NOT NULL,
-    "approved_by" TEXT,
+    "supplier_id" UUID NOT NULL,
+    "created_by" UUID NOT NULL,
+    "approved_by" UUID,
     "status" TEXT NOT NULL DEFAULT 'draft',
     "issue_date" TIMESTAMP(3) NOT NULL,
     "estimated_date" TIMESTAMP(3),
@@ -18,9 +18,9 @@ CREATE TABLE "purchase_orders" (
 
 -- CreateTable
 CREATE TABLE "purchase_order_details" (
-    "id" TEXT NOT NULL,
-    "purchase_order_id" TEXT NOT NULL,
-    "supply_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "purchase_order_id" UUID NOT NULL,
+    "supply_id" UUID NOT NULL,
     "requested_qty" DECIMAL(10,2) NOT NULL,
     "received_qty" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "unit_price" DECIMAL(10,2),
