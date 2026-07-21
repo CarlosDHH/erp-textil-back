@@ -40,15 +40,41 @@ export const getById = async (id) => {
 
 export const create = async (data) => {
   try {
+    const { name, description, permissions } = data
+
     const role = await prisma.role.create({
       data: {
-        name: data.name,
-        description: data.description ?? null,
+        name,
+        description,
+        permissions: {
+          create: permissions?.map((perm) => ({
+            moduleId: perm.moduleId,
+            canView: perm.canView ?? false,
+            canCreate: perm.canCreate ?? false,
+            canEdit: perm.canEdit ?? false,
+            canDelete: perm.canDelete ?? false,
+          })) || [],
+        },
+      },
+      include: {
+        permissions: true,
       },
     })
-    return generateResponse(201, true, 'Rol creado', role)
+
+    return generateResponse(
+      201,
+      true,
+      'Role created successfully with permissions',
+      role
+    )
   } catch (error) {
-    return generateResponse(500, false, 'Error al crear rol', null, error.message)
+    return generateResponse(
+      500,
+      false,
+      'Error creating role',
+      null,
+      error.message
+    )
   }
 }
 
