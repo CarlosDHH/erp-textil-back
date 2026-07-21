@@ -1,9 +1,9 @@
 -- CreateTable
 CREATE TABLE "lotes" (
-    "id" TEXT NOT NULL,
-    "insumo_id" TEXT NOT NULL,
-    "proveedor_id" TEXT NOT NULL,
-    "orden_compra_id" TEXT,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "insumo_id" UUID NOT NULL,
+    "proveedor_id" UUID NOT NULL,
+    "orden_compra_id" UUID,
     "numero_lote" TEXT NOT NULL,
     "season" VARCHAR(60),
     "rango_tono" VARCHAR(60),

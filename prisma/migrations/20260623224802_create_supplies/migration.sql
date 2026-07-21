@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "insumos" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "code" VARCHAR(40) NOT NULL,
     "name" VARCHAR(180) NOT NULL,
     "type" VARCHAR(20) NOT NULL,

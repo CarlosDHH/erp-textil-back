@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "roles" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -11,13 +11,13 @@ CREATE TABLE "roles" (
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
     "last_name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
     "password_hash" TEXT NOT NULL,
-    "role_id" TEXT NOT NULL,
+    "role_id" UUID NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "deleted" BOOLEAN NOT NULL DEFAULT false,
     "login_attempts" INTEGER NOT NULL DEFAULT 0,
@@ -30,13 +30,13 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "modules" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "icon" TEXT,
     "path" TEXT,
-    "parent_id" TEXT,
+    "parent_id" UUID,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
 
@@ -45,9 +45,9 @@ CREATE TABLE "modules" (
 
 -- CreateTable
 CREATE TABLE "role_permissions" (
-    "id" TEXT NOT NULL,
-    "role_id" TEXT NOT NULL,
-    "module_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "role_id" UUID NOT NULL,
+    "module_id" UUID NOT NULL,
     "can_view" BOOLEAN NOT NULL DEFAULT false,
     "can_create" BOOLEAN NOT NULL DEFAULT false,
     "can_edit" BOOLEAN NOT NULL DEFAULT false,
@@ -59,16 +59,16 @@ CREATE TABLE "role_permissions" (
 
 -- CreateTable
 CREATE TABLE "user_permission_overrides" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "module_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "module_id" UUID NOT NULL,
     "can_view" BOOLEAN NOT NULL DEFAULT false,
     "can_create" BOOLEAN NOT NULL DEFAULT false,
     "can_edit" BOOLEAN NOT NULL DEFAULT false,
     "can_delete" BOOLEAN NOT NULL DEFAULT false,
     "override_type" TEXT NOT NULL,
     "reason" TEXT,
-    "granted_by" TEXT NOT NULL,
+    "granted_by" UUID NOT NULL,
     "granted_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expires_at" TIMESTAMPTZ(3),
 

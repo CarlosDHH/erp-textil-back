@@ -10,7 +10,7 @@ datasource db {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model Role {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) 
   name        String   @unique
   description String?
   isActive    Boolean  @default(true) @map("is_active")
@@ -22,7 +22,7 @@ model Role {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String    @id @default(uuid()) @db.Uuid
   name          String
   lastName      String    @map("last_name")
   email         String    @unique
@@ -43,6 +43,8 @@ model User {
   role                Role                     @relation(fields: [roleId], references: [id])
   permissionOverrides UserPermissionOverride[]  @relation("UserOverrides")
   grantedOverrides    UserPermissionOverride[]  @relation("GrantedByUser")
+
+  passkeys     Passkey[]
 
   @@map("users")
 }
@@ -85,7 +87,7 @@ model RolePermission {
 
 model UserPermissionOverride {
   id           String    @id @default(uuid())
-  userId       String    @map("user_id")
+  userId       String    @map("user_id") @db.Uuid
   moduleId     String    @map("module_id")
   canView      Boolean   @default(false) @map("can_view")
   canCreate    Boolean   @default(false) @map("can_create")
@@ -165,7 +167,7 @@ model Batch {
 model InventoryMovement {
   id          String   @id @default(uuid())
   batchId     String   @map("lote_id")
-  userId      String   @map("usuario_id")
+  userId      String   @map("usuario_id") @db.Uuid
   referenceId String?  @map("referencia_id")
   type        String   @db.VarChar(10) // entry | exit | adjustment | loss
   quantity    Decimal  @db.Decimal(10,2)
@@ -224,4 +226,22 @@ model PurchaseOrderDetail {
   supply        Supply        @relation(fields: [supplyId], references: [id])
 
   @@map("purchase_order_details")
+}
+
+model Passkey {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid @map("user_id")   // ← agregar @db.Uuid aquí
+  credentialId    String    @unique @map("credential_id")
+  publicKey       Bytes     @map("public_key")
+  counter         BigInt    @default(0)
+  deviceType      String?   @map("device_type") @db.VarChar(40)
+  backedUp        Boolean   @default(false) @map("backed_up")
+  transports      String[]  @map("transports")
+  friendlyName    String?   @map("friendly_name") @db.VarChar(100)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt      DateTime? @map("last_used_at") @db.Timestamptz(3)
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("passkeys")
 }

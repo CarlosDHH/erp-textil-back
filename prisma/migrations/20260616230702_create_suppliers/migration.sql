@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "suppliers" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" VARCHAR(180) NOT NULL,
     "rfc" VARCHAR(13),
     "phone" VARCHAR(20),
