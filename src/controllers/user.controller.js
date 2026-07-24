@@ -11,13 +11,20 @@ export const getById = async (req, res) => {
   res.status(result.statusCode).json(result)
 }
 
+export const checkPhone = async (req, res) => {
+  const { phone, excludeId } = req.query
+  const result = await userService.checkPhone(phone, excludeId)
+  res.status(result.statusCode).json(result)
+}
+
 export const create = async (req, res) => {
   const result = await userService.create(req.body)
   res.status(result.statusCode).json(result)
 }
 
 export const update = async (req, res) => {
-  const result = await userService.update(req.params.id, req.body)
+  // Se pasa quién edita (no a quién se edita): la bitácora atribuye el cambio a su autor.
+  const result = await userService.update(req.params.id, req.body, req.user?.sub)
   res.status(result.statusCode).json(result)
 }
 

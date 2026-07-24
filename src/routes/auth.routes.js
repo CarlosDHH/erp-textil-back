@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { login, refresh } from '../controllers/auth.controller.js'
+import { login, refresh, forgotPassword, resetPassword } from '../controllers/auth.controller.js'
 import {
     getBiometricRegistrationOptions,
     verifyBiometricRegistration,
@@ -10,8 +10,10 @@ import { authenticate, authorize } from '../middlewares/auth.js'
 
 const router = Router()
 
-router.post('/login', login)    
+router.post('/login', login)
 router.post('/refresh', refresh)
+router.post('/forgot-password', forgotPassword)
+router.post('/reset-password', resetPassword)
 
 router.get('/biometric/register/options', authenticate, getBiometricRegistrationOptions)
 router.post('/biometric/register/verify', authenticate, verifyBiometricRegistration)

@@ -32,12 +32,50 @@ export const refresh = async (req, res) => {
   res.status(result.statusCode).json(result)
 }
 
+/**
+ * POST /auth/forgot-password
+ *
+ * La lógica vive en authService.forgotPassword (igual que el resto de
+ * controladores de este backend, que solo validan la entrada y delegan):
+ *   1. Comprueba con Prisma que el correo exista y no esté eliminado.
+ *   2. Si NO existe, corta sin generar token ni llamar a Resend y responde 200
+ *      con un mensaje genérico, para no revelar qué correos están registrados.
+ *   3. Si existe, guarda el hash del token y envía el correo con Resend.
+ *   4. Si el envío falla, registra el error original y responde 500.
+ */
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body
+  if (!email) {
+    return res.status(400).json(generateResponse(400, false, 'Correo requerido'))
+  }
+  const result = await authService.forgotPassword(email)
+  res.status(result.statusCode).json(result)
+}
+
+export const resetPassword = async (req, res) => {
+  const { token, password } = req.body
+  if (!token || !password) {
+    return res
+      .status(400)
+      .json(generateResponse(400, false, 'Token y nueva contraseña son requeridos'))
+  }
+  const result = await authService.resetPassword(token, password)
+  res.status(result.statusCode).json(result)
+}
+
 // Requiere sesión activa (authenticate middleware) — se usa para VINCULAR una passkey
 export async function getBiometricRegistrationOptions(req, res, next) {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.sub } })
     if (!user) {
       return res.status(404).json(generateResponse(404, false, 'Usuario no encontrado'))
+    }
+
+    const existingPasskey = await prisma.passkey.findFirst({ where: { userId: user.id } })
+    if (existingPasskey) {
+      return res
+        .status(400)
+        .json(generateResponse(400, false, 'Este usuario ya tiene una huella biométrica registrada.'))
     }
 
     const options = await buildRegistrationOptions(user)

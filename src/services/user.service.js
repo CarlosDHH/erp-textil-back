@@ -2,9 +2,23 @@ import bcrypt from 'bcryptjs'
 import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
 import { paginate, paginatedResponse } from '../utils/queryHelpers.js'
+import { ENTITY, diffFields, logUpdate } from './activityLog.service.js'
 
 const SALT_ROUNDS = 10
 const baseWhere = { deleted: false }
+
+/**
+ * Campos auditables del usuario y su etiqueta en la bitácora.
+ * `passwordHash` queda fuera a propósito: la bitácora se muestra en el perfil y
+ * no debe reflejar nada relativo a las credenciales.
+ */
+const USER_AUDIT_FIELDS = {
+  name: 'nombre',
+  lastName: 'apellido',
+  phone: 'teléfono',
+  roleId: 'rol',
+  active: 'estado',
+}
 
 const safeUser = (user) => ({
   id: user.id,
@@ -61,6 +75,28 @@ export const getById = async (id) => {
   }
 }
 
+/**
+ * Verifica si un teléfono ya está registrado por otro usuario (no eliminado).
+ * `excludeId` permite excluir al propio usuario en modo edición.
+ */
+export const checkPhone = async (phone, excludeId) => {
+  try {
+    if (!phone) return generateResponse(200, true, 'Teléfono disponible', { exists: false })
+
+    const user = await prisma.user.findFirst({
+      where: {
+        phone,
+        deleted: false,
+        ...(excludeId && { id: { not: excludeId } }),
+      },
+    })
+
+    return generateResponse(200, true, 'Verificación de teléfono', { exists: !!user })
+  } catch (error) {
+    return generateResponse(500, false, 'Error al verificar teléfono', null, error.message)
+  }
+}
+
 export const create = async (data) => {
   try {
     const exists = await prisma.user.findFirst({ where: { email: data.email, ...baseWhere } })
@@ -86,7 +122,16 @@ export const create = async (data) => {
   }
 }
 
-export const update = async (id, data) => {
+/**
+ * Edición de usuario, con registro en la bitácora de actividad.
+ *
+ * @param {string} id
+ * @param {object} data
+ * @param {string} [editorId] Quién hace el cambio (no quién lo recibe). El
+ *   evento se atribuye al editor, que es como lo consulta la pestaña
+ *   "Actividad Reciente": muestra lo que ese usuario hizo.
+ */
+export const update = async (id, data, editorId) => {
   try {
     const user = await prisma.user.findFirst({ where: { id, ...baseWhere } })
     if (!user) return generateResponse(404, false, 'Usuario no encontrado')
@@ -101,6 +146,16 @@ export const update = async (id, data) => {
         ...(data.active !== undefined && { active: data.active }),
       },
       include: { role: { select: { name: true } } },
+    })
+
+    // Igual que en insumos: la bitácora se escribe después y sin transacción,
+    // para que un fallo al auditar no deshaga una edición ya guardada.
+    await logUpdate({
+      userId: editorId,
+      entity: ENTITY.USER,
+      entityId: updated.id,
+      entityName: `${updated.name} ${updated.lastName}`.trim(),
+      changedFields: diffFields(user, updated, USER_AUDIT_FIELDS),
     })
 
     return generateResponse(200, true, 'Usuario actualizado', safeUser(updated))

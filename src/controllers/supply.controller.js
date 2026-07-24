@@ -17,7 +17,8 @@ export const create = async (req, res) => {
 }
 
 export const update = async (req, res) => {
-  const result = await supplyService.update(req.params.id, req.body)
+  // El id del usuario alimenta el evento de modificación de la bitácora.
+  const result = await supplyService.update(req.params.id, req.body, req.user?.sub)
   res.status(result.statusCode).json(result)
 }
 

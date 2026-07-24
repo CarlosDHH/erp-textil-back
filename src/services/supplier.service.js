@@ -77,6 +77,9 @@ export const create = async (data) => {
         phone: data.phone ?? null,
         email: data.email ?? null,
         contactName: data.contactName ?? null,
+        // El formulario envía `active`; antes se ignoraba y todo proveedor
+        // nacía activo aunque se hubiera desmarcado la casilla.
+        ...(data.active !== undefined && { active: !!data.active }),
       },
     })
 
