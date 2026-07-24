@@ -2,6 +2,7 @@ import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
 import { paginate, paginatedResponse } from '../utils/queryHelpers.js'
 import { BusinessRuleError, InsufficientStockError, toErrorResponse } from '../utils/errors.js'
+import { UPDATE_TYPE } from './activityLog.service.js'
 
 /** Tipos de movimiento que descuentan existencias. */
 export const EXIT_TYPES = ['exit', 'loss']
@@ -59,13 +60,23 @@ const safeMovement = (m) => ({
   batchNumber: m.batch?.batchNumber ?? null,
   userId: m.userId,
   supplyId: m.batch?.supply?.id ?? null,
-  supplyName: m.batch?.supply?.name ?? null,
+  // En una modificación manda el nombre que la bitácora copió del registro
+  // editado. El orden importa: al editar un lote sí hay lote asociado, y sin
+  // esta precedencia el feed titularía la fila con el nombre del insumo
+  // ("Tela de Algodón") en vez de con el lote que realmente se editó
+  // ("LOTE-2026-0001"). Los movimientos de stock conservan el nombre del insumo.
+  supplyName: (m.type === UPDATE_TYPE ? m.entityName : null) ?? m.batch?.supply?.name ?? null,
   // La unidad de medida viaja junto al movimiento para que el frontend pueda
   // mostrar "12 Metros" en lugar de un número suelto sin contexto.
   unitMeasure: m.batch?.supply?.unitMeasure ?? null,
   type: m.type,
-  quantity: Number(m.quantity),
+  // `Number(null)` devuelve 0, no null: sin este guard una modificación (que no
+  // mueve cantidad) aparecería en el feed como "+ 0".
+  quantity: m.quantity == null ? null : Number(m.quantity),
   reason: m.reason,
+  entity: m.entity ?? null,
+  entityId: m.entityId ?? null,
+  entityName: m.entityName ?? null,
   createdAt: m.createdAt,
 })
 
@@ -358,6 +369,9 @@ export const getKardex = async (supplyId) => {
         batch: {
           supplyId: supplyId,
         },
+        // El kardex es un libro de existencias: las modificaciones de la
+        // bitácora no mueven stock y falsearían la columna de saldo.
+        type: { not: UPDATE_TYPE },
       },
       include: {
         batch: true,

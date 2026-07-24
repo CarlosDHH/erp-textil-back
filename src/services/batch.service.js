@@ -2,6 +2,22 @@ import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
 import { paginate, paginatedResponse } from '../utils/queryHelpers.js'
 import { BusinessRuleError, InsufficientStockError, toErrorResponse } from '../utils/errors.js'
+import { ENTITY, diffFields, logUpdate } from './activityLog.service.js'
+
+/** Campos auditables del lote y su etiqueta en la bitácora. */
+const BATCH_AUDIT_FIELDS = {
+  batchNumber: 'número de lote',
+  supplyId: 'insumo',
+  supplierId: 'proveedor',
+  initialQuantity: 'cantidad inicial',
+  color: 'color',
+  materialType: 'tipo de material',
+  season: 'temporada',
+  toneRange: 'rango de tono',
+  warehouseLocation: 'ubicación',
+  entryDate: 'fecha de entrada',
+  notes: 'notas',
+}
 
 const safeBatch = (b) => ({
   id: b.id,
@@ -215,7 +231,7 @@ export const update = async (id, data, userId) => {
         }
       }
 
-      return tx.batch.update({
+      const result = await tx.batch.update({
         where: { id },
         data: {
           ...(data.batchNumber && { batchNumber: data.batchNumber }),
@@ -235,6 +251,20 @@ export const update = async (id, data, userId) => {
         },
         include: batchRelations,
       })
+
+      // Va dentro de la transacción, junto al movimiento de ajuste que ya se
+      // registraba aquí: si la edición se revierte, su rastro también.
+      await logUpdate({
+        client: tx,
+        userId,
+        entity: ENTITY.BATCH,
+        entityId: result.id,
+        entityName: result.batchNumber,
+        batchId: result.id,
+        changedFields: diffFields(batch, result, BATCH_AUDIT_FIELDS),
+      })
+
+      return result
     })
 
     return generateResponse(200, true, 'Lote actualizado', safeBatch(updated))

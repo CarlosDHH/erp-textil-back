@@ -188,10 +188,14 @@ export const resetPassword = async (token, newPassword) => {
   try {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
+    // `deleted: false` va en el filtro por la misma razón que en forgotPassword:
+    // un usuario dado de baja conserva su fila (y podría conservar un token aún
+    // vigente), pero no debe poder recuperar el acceso a la cuenta.
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: hashedToken,
         resetPasswordExpiresAt: { gt: new Date() },
+        deleted: false,
       },
     })
 

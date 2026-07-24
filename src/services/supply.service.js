@@ -1,8 +1,21 @@
 import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
 import { paginate, paginatedResponse } from '../utils/queryHelpers.js'
+import { ENTITY, diffFields, logUpdate } from './activityLog.service.js'
 
 const baseWhere = { isActive: true }
+
+/** Campos auditables del insumo y su etiqueta en la bitácora. */
+const SUPPLY_AUDIT_FIELDS = {
+  code: 'código',
+  name: 'nombre',
+  type: 'categoría',
+  unitMeasure: 'unidad de medida',
+  minStock: 'stock mínimo',
+  currentStock: 'stock actual',
+  durationDays: 'días de duración',
+  isActive: 'estado',
+}
 
 const safeSupply = (supply) => ({
   id: supply.id,
@@ -92,7 +105,16 @@ export const create = async (data) => {
   }
 }
 
-export const update = async (id, data) => {
+/**
+ * Edición de insumo. Además de aplicar los cambios deja constancia en la
+ * bitácora de actividad con los campos que realmente se modificaron.
+ *
+ * @param {string} id
+ * @param {object} data
+ * @param {string} [userId] Autor del cambio; sin él la edición se aplica igual,
+ *                          pero sin trazabilidad (mismo criterio que en lotes).
+ */
+export const update = async (id, data, userId) => {
   try {
     const supply = await prisma.supply.findFirst({
       where: { id, ...baseWhere },
@@ -112,6 +134,16 @@ export const update = async (id, data) => {
         ...(data.durationDays !== undefined && { durationDays: data.durationDays }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
+    })
+
+    // Fuera de transacción a propósito: el insumo ya quedó guardado y un fallo
+    // al escribir la bitácora no debe revertir ni fallar la edición.
+    await logUpdate({
+      userId,
+      entity: ENTITY.SUPPLY,
+      entityId: updated.id,
+      entityName: updated.name,
+      changedFields: diffFields(supply, updated, SUPPLY_AUDIT_FIELDS),
     })
 
     return generateResponse(200, true, 'Supply updated', safeSupply(updated))

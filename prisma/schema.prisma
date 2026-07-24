@@ -33,6 +33,8 @@ model User {
   deleted       Boolean   @default(false)
   loginAttempts Int       @default(0) @map("login_attempts")
   blockedUntil  DateTime? @map("blocked_until") @db.Timestamptz(3)
+  resetPasswordToken     String?   @map("reset_password_token")
+  resetPasswordExpiresAt DateTime? @map("reset_password_expires_at") @db.Timestamptz(3)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -95,7 +97,7 @@ model UserPermissionOverride {
   canDelete    Boolean   @default(false) @map("can_delete")
   overrideType String    @map("override_type")
   reason       String?
-  grantedBy    String    @map("granted_by")
+  grantedBy    String    @map("granted_by") @db.Uuid
   grantedAt    DateTime  @default(now()) @map("granted_at") @db.Timestamptz(3)
   expiresAt    DateTime? @map("expires_at") @db.Timestamptz(3)
 
@@ -148,6 +150,7 @@ model Batch {
   batchNumber      String   @unique @map("numero_lote")
   season           String?  @db.VarChar(60)
   toneRange        String?  @map("rango_tono") @db.VarChar(60)
+  materialType     String?  @map("tipo_material") @db.VarChar(60)
   color            String?  @db.VarChar(60)
   initialQuantity  Decimal  @map("cantidad_inicial") @db.Decimal(10,2)
   currentQuantity  Decimal  @map("cantidad_actual") @db.Decimal(10,2)
@@ -164,18 +167,35 @@ model Batch {
   @@map("lotes")
 }
 
+/// Bitácora de actividad del almacén.
+///
+/// Además de los movimientos de stock (entry/exit/adjustment/loss), esta tabla
+/// guarda eventos de auditoría de tipo `update`: cada vez que un usuario edita
+/// un insumo, un lote o un usuario se registra aquí para alimentar la pestaña
+/// "Actividad Reciente" del perfil.
+///
+/// Por eso `batchId` y `quantity` son opcionales: la modificación de un insumo
+/// o de un usuario no ocurre sobre ningún lote ni mueve cantidad alguna. Los
+/// campos `entity*` identifican el registro afectado cuando no hay lote.
 model InventoryMovement {
   id          String   @id @default(uuid())
-  batchId     String   @map("lote_id")
+  batchId     String?  @map("lote_id")
   userId      String   @map("usuario_id") @db.Uuid
   referenceId String?  @map("referencia_id")
-  type        String   @db.VarChar(10) // entry | exit | adjustment | loss
-  quantity    Decimal  @db.Decimal(10,2)
+  type        String   @db.VarChar(10) // entry | exit | adjustment | loss | update
+  quantity    Decimal? @db.Decimal(10,2)
   reason      String?
+  /// Tabla afectada cuando el evento no es un movimiento de stock: supply | batch | user
+  entity      String?  @map("entidad") @db.VarChar(20)
+  /// Id del registro afectado dentro de `entity`.
+  entityId    String?  @map("entidad_id")
+  /// Nombre legible del registro, copiado en el momento del cambio para que la
+  /// bitácora siga siendo entendible aunque el registro se renombre o se borre.
+  entityName  String?  @map("entidad_nombre")
   createdAt   DateTime @default(now()) @map("fecha")
 
-  batch Batch @relation(fields: [batchId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
+  batch Batch? @relation(fields: [batchId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
 
   @@map("movimientos_inventario")
 }
@@ -184,8 +204,8 @@ model PurchaseOrder {
   id            String   @id @default(uuid())
   folio         String   @unique
   supplierId    String   @map("supplier_id")
-  createdById   String   @map("created_by")
-  approvedById  String?  @map("approved_by")
+  createdById   String   @map("created_by") @db.Uuid
+  approvedById  String?  @map("approved_by") @db.Uuid
 
   status        String   @default("draft") // draft | sent | confirmed | partial | completed | cancelled
 
