@@ -1,11 +1,20 @@
 import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
+import { paginate, paginatedResponse } from '../utils/queryHelpers.js'
 
 const safeMovement = (m) => ({
   id: m.id,
   batchId: m.batchId,
+  batchNumber: m.batch?.batchNumber ?? null,
+  userId: m.userId,
+  supplyId: m.batch?.supply?.id ?? null,
+  supplyName: m.batch?.supply?.name ?? null,
+  // La unidad de medida viaja junto al movimiento para que el frontend pueda
+  // mostrar "12 Metros" en lugar de un número suelto sin contexto.
+  unitMeasure: m.batch?.supply?.unitMeasure ?? null,
   type: m.type,
-  quantity: m.quantity,
+  quantity: Number(m.quantity),
+  reason: m.reason,
   createdAt: m.createdAt,
 })
 
@@ -73,13 +82,26 @@ export const create = async (data, userId) => {
   }
 }
 
-export const getAll = async () => {
+export const getAll = async ({ userId, page = 1, limit = 20 } = {}) => {
   try {
-    const data = await prisma.inventoryMovement.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
+    const where = userId ? { userId } : {}
 
-    return generateResponse(200, true, 'Movements retrieved', data.map(safeMovement))
+    const [data, total] = await Promise.all([
+      prisma.inventoryMovement.findMany({
+        where,
+        include: { batch: { include: { supply: true } } },
+        orderBy: { createdAt: 'desc' },
+        ...paginate(page, limit),
+      }),
+      prisma.inventoryMovement.count({ where }),
+    ])
+
+    return generateResponse(
+      200,
+      true,
+      'Movements retrieved',
+      paginatedResponse(data.map(safeMovement), total, page, limit)
+    )
   } catch (error) {
     return generateResponse(500, false, 'Error retrieving movements', null, error.message)
   }
