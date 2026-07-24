@@ -1,10 +1,13 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import prisma from '../config/prisma.js'
 import { generateResponse } from '../utils/handleResponse.js'
+import { sendPasswordResetEmail } from './mail.service.js'
 
 const MAX_ATTEMPTS = 5
 const BLOCK_MINUTES = 15
+const RESET_TOKEN_EXPIRES_MINUTES = 60
 
 export const generateTokens = (payload) => ({
   accessToken: jwt.sign(payload, process.env.JWT_SECRET, {
@@ -129,4 +132,88 @@ export async function resetFailedAttempts(email) {
     where: { email },
     data: { loginAttempts: 0, blockedUntil: null },
   })
+}
+
+export const forgotPassword = async (email) => {
+  // Respuesta genérica exista o no el correo, para no filtrar qué correos están
+  // registrados (enumeración de usuarios).
+  const genericResponse = generateResponse(
+    200,
+    true,
+    'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña'
+  )
+
+  try {
+    // Regla estricta: sin usuario real no se genera token ni se llama a Resend.
+    // Se corta aquí y se devuelve la misma respuesta que en el caso exitoso.
+    const user = await prisma.user.findFirst({ where: { email, deleted: false } })
+    if (!user) return genericResponse
+
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    // En la base solo se guarda el hash: si alguien lee la tabla no puede
+    // reconstruir el enlace de recuperación.
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRES_MINUTES * 60 * 1000),
+      },
+    })
+
+    try {
+      // El servicio de correo arma la URL con FRONTEND_URL; aquí solo viaja el token.
+      await sendPasswordResetEmail(email, rawToken)
+    } catch (mailError) {
+      // El error original queda en el log del servidor para poder depurar
+      // (clave inválida, dominio sin verificar, cuota agotada…), pero nunca se
+      // expone al cliente.
+      console.error('[forgotPassword] Fallo al enviar el correo de recuperación:', mailError)
+
+      return generateResponse(
+        500,
+        false,
+        'Hubo un problema al enviar el correo de recuperación. Intenta más tarde.'
+      )
+    }
+
+    return genericResponse
+  } catch (error) {
+    return generateResponse(500, false, 'Error al procesar la solicitud', null, error.message)
+  }
+}
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpiresAt: { gt: new Date() },
+      },
+    })
+
+    if (!user) {
+      return generateResponse(400, false, 'El enlace de recuperación es inválido o ha expirado')
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10)
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetPasswordToken: null,
+        resetPasswordExpiresAt: null,
+        loginAttempts: 0,
+        blockedUntil: null,
+      },
+    })
+
+    return generateResponse(200, true, 'Contraseña actualizada correctamente')
+  } catch (error) {
+    return generateResponse(500, false, 'Error al restablecer la contraseña', null, error.message)
+  }
 }
