@@ -12,12 +12,13 @@ export const getById = async (req, res) => {
 }
 
 export const create = async (req, res) => {
-  const result = await batchService.create(req.body)
+  // El id del usuario alimenta el movimiento de entrada que acompaña al alta.
+  const result = await batchService.create(req.body, req.user?.sub)
   res.status(result.statusCode).json(result)
 }
 
 export const update = async (req, res) => {
-  const result = await batchService.update(req.params.id, req.body)
+  const result = await batchService.update(req.params.id, req.body, req.user?.sub)
   res.status(result.statusCode).json(result)
 }
 

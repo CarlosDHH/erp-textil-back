@@ -26,7 +26,8 @@ export const create = async (req, res) => {
 
 export const getAll = async (req, res) => {
   try {
-    const result = await movementService.getAll()
+    const { userId, type, from, to, page = 1, limit = 20 } = req.query
+    const result = await movementService.getAll({ userId, type, from, to, page, limit })
     res.status(result.statusCode).json(result)
   } catch (error) {
     res.status(500).json({
