@@ -80,6 +80,36 @@ export async function verifyAndSaveRegistration(user, response, friendlyName) {
     return true;
 }
 
+/**
+ * Estado de la huella biométrica del usuario, para que el perfil sepa si debe
+ * ofrecer "Registrar" o "Eliminar" sin tener que provocar un 400.
+ */
+export async function getPasskeyStatus(userId) {
+    const passkey = await prisma.passkey.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: { friendlyName: true, deviceType: true, createdAt: true, lastUsedAt: true },
+    });
+
+    return {
+        registered: !!passkey,
+        friendlyName: passkey?.friendlyName ?? null,
+        deviceType: passkey?.deviceType ?? null,
+        createdAt: passkey?.createdAt ?? null,
+        lastUsedAt: passkey?.lastUsedAt ?? null,
+    };
+}
+
+/**
+ * Elimina la(s) passkey(s) del usuario. Con la regla de "una por usuario" borra
+ * como mucho una, pero se usa deleteMany para no fallar si quedara alguna huérfana
+ * y para poder volver a registrar desde cero. Devuelve cuántas se eliminaron.
+ */
+export async function deletePasskeys(userId) {
+    const { count } = await prisma.passkey.deleteMany({ where: { userId } });
+    return count;
+}
+
 export async function buildAuthenticationOptions(email) {
     const user = await prisma.user.findUnique({
         where: { email },
