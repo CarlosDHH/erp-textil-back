@@ -1,36 +1,36 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
 /**
- * Envío de correo transaccional a través de Resend.
- *
- * Todas las credenciales y URLs se leen de variables de entorno; este archivo
- * no debe contener ninguna clave ni dominio quemado.
+ * Envío de correo transaccional a través de Gmail SMTP (Nodemailer).
  *
  * Variables requeridas:
- *   RESEND_API_KEY  Clave de API de Resend.
- *   EMAIL_FROM      Remitente verificado, ej. "PantSys <no-reply@tudominio.com>".
- *   FRONTEND_URL    Origen del cliente Angular, ej. "http://localhost:4200".
+ *   GMAIL_USER          Dirección Gmail remitente, ej. "cuenta@gmail.com".
+ *   GMAIL_APP_PASSWORD  Contraseña de aplicación generada en myaccount.google.com/apppasswords.
+ *   FRONTEND_URL        Origen del cliente Angular, ej. "https://erp-textil-front.vercel.app".
  */
 
 /** Minutos de validez del enlace (debe coincidir con el TTL del token en auth.service). */
 const RESET_LINK_TTL_MINUTES = 60
 
-/**
- * El cliente se crea la primera vez que se envía, no al importar el módulo:
- * así el servidor arranca aunque la clave todavía no esté configurada y el
- * fallo aparece en el momento del envío, con un mensaje claro.
- */
-let resendClient = null
+let transporter = null
 
-const getResendClient = () => {
-  const apiKey = process.env.RESEND_API_KEY
+const getTransporter = () => {
+  if (transporter) return transporter
 
-  if (!apiKey) {
-    throw new Error('Falta la variable de entorno RESEND_API_KEY')
-  }
+  const user = process.env.GMAIL_USER
+  const pass = process.env.GMAIL_APP_PASSWORD
 
-  resendClient ??= new Resend(apiKey)
-  return resendClient
+  if (!user) throw new Error('Falta la variable de entorno GMAIL_USER')
+  if (!pass) throw new Error('Falta la variable de entorno GMAIL_APP_PASSWORD')
+
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: { user, pass },
+  })
+
+  return transporter
 }
 
 /** Quita la barra final para no generar URLs con doble slash. */
@@ -45,13 +45,9 @@ const getFrontendUrl = () => {
 }
 
 const getSender = () => {
-  const from = process.env.EMAIL_FROM
-
-  if (!from) {
-    throw new Error('Falta la variable de entorno EMAIL_FROM')
-  }
-
-  return from
+  const user = process.env.GMAIL_USER
+  if (!user) throw new Error('Falta la variable de entorno GMAIL_USER')
+  return `PantSys ERP <${user}>`
 }
 
 /**
@@ -166,10 +162,10 @@ export const sendPasswordResetEmail = async (toEmail, resetToken) => {
     throw new Error('sendPasswordResetEmail requiere el correo y el token')
   }
 
-  const resend = getResendClient()
+  const mail = getTransporter()
   const resetUrl = `${getFrontendUrl()}/auth/reset-password?token=${encodeURIComponent(resetToken)}`
 
-  const { data, error } = await resend.emails.send({
+  const info = await mail.sendMail({
     from: getSender(),
     to: toEmail,
     subject: 'Recuperación de Contraseña - PantSys',
@@ -177,16 +173,5 @@ export const sendPasswordResetEmail = async (toEmail, resetToken) => {
     text: buildText(resetUrl),
   })
 
-  // El SDK de Resend NO lanza excepciones ante un error de la API: devuelve
-  // `{ data: null, error }`. Sin este chequeo, un dominio no verificado o una
-  // clave inválida se darían por enviados silenciosamente.
-  if (error) {
-    const failure = new Error(error.message ?? 'Resend rechazó el envío del correo')
-    failure.name = 'ResendError'
-    failure.code = error.name
-    failure.statusCode = error.statusCode
-    throw failure
-  }
-
-  return data
+  return { id: info.messageId }
 }
