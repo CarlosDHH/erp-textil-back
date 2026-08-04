@@ -6,6 +6,8 @@ import {
   verifyAndSaveRegistration,
   buildAuthenticationOptions,
   verifyAuthenticationAndGetUser,
+  getPasskeyStatus,
+  deletePasskeys,
 } from '../services/webauthn.service.js'
 import {
   isAccountLocked,
@@ -80,6 +82,33 @@ export async function getBiometricRegistrationOptions(req, res, next) {
 
     const options = await buildRegistrationOptions(user)
     return res.status(200).json(generateResponse(200, true, 'Opciones de registro generadas', options))
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Estado de la huella del usuario en sesión: lo consulta el perfil para decidir
+// si muestra "Registrar" o "Eliminar" sin provocar un 400.
+export async function getBiometricStatus(req, res, next) {
+  try {
+    const status = await getPasskeyStatus(req.user.sub)
+    return res.status(200).json(generateResponse(200, true, 'Estado biométrico', status))
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Elimina la huella del usuario en sesión para poder registrar otra. La ruta pasa
+// por `authenticate`, así que solo se borra la propia (req.user.sub).
+export async function deleteBiometricRegistration(req, res, next) {
+  try {
+    const removed = await deletePasskeys(req.user.sub)
+    if (removed === 0) {
+      return res
+        .status(404)
+        .json(generateResponse(404, false, 'No hay ninguna huella biométrica registrada'))
+    }
+    return res.status(200).json(generateResponse(200, true, 'Huella biométrica eliminada'))
   } catch (err) {
     next(err)
   }

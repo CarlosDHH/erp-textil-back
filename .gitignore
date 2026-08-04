@@ -1,3 +1,14 @@
 package-lock.json
 .env
 node_modules/
+
+# Compiled output
+dist/
+out/
+
+# TestSprite / reportes de QA generados
+testsprite_tests/
+.testsprite/
+testsprite_logs/
+testsprite.yml
+testsprite-mcp-test-report.*
