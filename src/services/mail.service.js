@@ -111,7 +111,7 @@ export const sendPasswordResetEmail = async (toEmail, resetToken) => {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      sender: { name: 'PantSys ERP', email: 'onboarding@brevo.com' },
+      sender: { name: 'PantSys ERP', email: process.env.BREVO_SENDER },
       to: [{ email: toEmail }],
       subject: 'Recuperación de Contraseña - PantSys',
       htmlContent: buildHtml(resetUrl),
